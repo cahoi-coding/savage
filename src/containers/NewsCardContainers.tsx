@@ -1,43 +1,68 @@
-import React, {useState, useEffect} from 'react';
+import React, {Component, useState, useEffect, ReactNode} from 'react';
 import {NewsCard, NewsCardProps} from "../components/NewsCard";
 
 import {db, NEWSPAPERS_COLLECTION} from 'services/firebase-config';
 import {collection, getDocs} from 'firebase/firestore';
 
+// interface NewsCardContainerState {
+//     newspapersList: [NewsCardProps],
+//     isLoaded: boolean
+// }
 
-export function NewsCardContainer(props: any)
+// function NewsCardContainerStateConstructor(): NewsCardContainerState
+// {
+//     // @ts-ignore
+//     return {newspapersList: [], isLoaded: false}
+// }
+
+export class NewsCardContainer extends Component<any, any>
 {
-    const [newspapers, setNewspapers] = useState([]);
-    const newspapersCollectionRef = collection(db, NEWSPAPERS_COLLECTION);
+    private readonly newspapersCollectionRef;
 
-    useEffect(()=>
+    public constructor(props: any)
     {
-        async function getNewspapers()
-        {
-            const data = await getDocs(newspapersCollectionRef);
-            const datum = data.docs.map(doc =>
-                (
-                    {...doc.data(), id: doc.id}
-                )
-            )
+        super(props);
+
+        this.state = {
             // @ts-ignore
-            setNewspapers(datum);
+            newspapersList: [],
+            isLoaded: false
         }
-        getNewspapers();
-    }, [])
 
-    const renderNewsCards = newspapers.map(function (data, index) {
-        return <NewsCard key={index} data={data}/>
-    })
+        this.getNewspapers = this.getNewspapers.bind(this);
+        this.newspapersCollectionRef = collection(db, NEWSPAPERS_COLLECTION);
+    }
 
-    return (
-        <div className="news-card__container--primary">
-            {renderNewsCards}
-            {renderNewsCards}
-            {renderNewsCards}
-            {renderNewsCards}
-            {renderNewsCards}
-            {renderNewsCards}
-        </div>
-    );
+    public async getNewspapers()
+    {
+        const newspapersDocs = await getDocs(this.newspapersCollectionRef);
+
+        return newspapersDocs.docs.map( (doc) => {
+            return {
+                data: {...doc.data(), id: doc.id}
+            };
+        });
+    }
+
+    public async componentDidMount()
+    {
+        const newspapers = await this.getNewspapers();
+        this.setState({
+            newspapersList: [...newspapers],
+            isLoaded: true
+        })
+    }
+
+    render()
+    {
+        return (
+            <div className="news-card__container--primary">
+                {
+                    this.state.newspapersList.map((data: any, index: number) =>
+                        {return <NewsCard key={index} data={data.data}/>;}
+                    )
+                }
+            </div>
+        );
+    }
 }
